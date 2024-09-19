@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import PostCard from '../components/PostCard';
-import { Link } from 'react-router-dom';
+import Loading from '../components/Loading';
 
 const Home = () => {
   const [posts, setPosts] = useState([]);
@@ -32,13 +32,13 @@ const Home = () => {
     fetchPosts();
   }, []);
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <Loading/>;
   if (error) return <p>Error: {error}</p>;
 
   return (
     <div className="p-4 space-y-4">
     
-      <h1>Posts</h1>
+      <h1 className='text-center font-extrabold text-3xl sm:text-5xl'>Posts</h1>
      
 
 {posts.map(post => (

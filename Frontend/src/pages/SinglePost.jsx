@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import Loading from '../components/Loading';
 
 const SinglePost = () => {
   const { id } = useParams();
+  const [loading,setLoading]=useState(false)
   const [post, setPost] = useState({});
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
@@ -14,9 +16,11 @@ const SinglePost = () => {
   useEffect(() => {
     const fetchPost = async () => {
       try {
+        setLoading(true)
         const response = await axios.get(`${baseUrl}/api/v1/posts/getPost/${id}`);
         setPost(response.data.data);
         setComments(response.data.data.comments);
+        setLoading(false)
       } catch (error) {
         console.error('Error fetching post:', error);
       }
@@ -66,6 +70,8 @@ const SinglePost = () => {
       toast.error("Failed to delete the post. Please try again later.");
     }
   };
+
+  if(loading) return <Loading/>
 
   return (
     <div className="p-4 space-y-4">

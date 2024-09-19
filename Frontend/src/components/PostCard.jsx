@@ -4,12 +4,12 @@ import { Link } from 'react-router-dom';
 const PostCard = ({ post }) => {
   const baseUrl = import.meta.env.VITE_API_URL;
   return (
-    <div className="bg-white shadow-md rounded-lg p-4 flex flex-col space-y-2">
+    <div className="bg-white shadow-md rounded-lg p-4 flex flex-col space-y-2 w-72 sm:w-[700px] mx-auto">
       {post?.image && (
         <img
         src={`${baseUrl}${post?.image}`}
           alt="Post"
-          className="w-full h-40 object-cover rounded-t-lg"
+          className="w-full h-20rem sm:h-[25rem] object-cover rounded-t-lg"
         />
       )}
       <h2 className="text-xl font-semibold">{post?.title}</h2>

@@ -46,18 +46,18 @@ const Header = () => {
         </div>
 
         <div className="space-x-4">
-          <Link to="/createPost"  className="bg-green-400 px-4 py-2 rounded hover:bg-white hover:text-green-400 hover:border-2">Create Post</Link>
+          <Link to="/createPost"  className="bg-green-400 px-2 py-1 sm:py-2 sm:px-4 rounded hover:bg-white hover:text-green-400 hover:border-2">Create Post</Link>
           {isAuthenticated ? (
             <button
               onClick={handleLogout}
-              className="bg-blue-500 px-4 py-2 rounded hover:bg-white hover:text-blue-500 hover:border-2"
+              className="bg-blue-500 px-2 py-1 sm:py-2 sm:px-4 rounded hover:bg-white hover:text-blue-500 hover:border-2"
             >
               Logout
             </button>
           ) : (
             <Link
               to="/login"
-              className="bg-blue-500 px-4 py-2 rounded hover:bg-white hover:text-blue-500 hover:border-2"
+              className="bg-blue-500 px-2 py-1 sm:py-2 sm:px-4 rounded hover:bg-white hover:text-blue-500 hover:border-2"
             >
               Login
             </Link>
