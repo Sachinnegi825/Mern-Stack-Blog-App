@@ -42,7 +42,7 @@ const Header = () => {
     <header className="text-white p-4 shadow-md">
       <div className="container mx-auto flex justify-between items-center">
         <div className="text-2xl font-bold text-black">
-          <Link to="/">MyBlog</Link>
+          <Link to="/">BlogSpace</Link>
         </div>
 
         <div className="space-x-4">
