@@ -1,114 +1,113 @@
-import axios from 'axios';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {toast } from 'react-toastify';
+import { toast } from 'react-toastify';
+import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
+import { ArrowRight, Eye, EyeOff, Lock } from 'lucide-react';
 
 const Login = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
+  const { login } = useAuth();
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  
+  const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const navigate=useNavigate();
-  const baseUrl = import.meta.env.VITE_API_URL;
-
-  // Regex patterns
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-
-  const validateForm = () => {
-    if (!emailRegex.test(formData.email)) {
-      toast.error("Please enter a valid email address.");
-      return false;
-    }
-
-    if (!passwordRegex.test(formData.password)) {
-      toast.error("Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character.");
-      return false;
-    }
-
-    return true;
-  };
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return; 
-    }
-
+    setLoading(true);
     try {
-      const response = await axios({
-        method: "post",
-        url:`${baseUrl}/api/v1/users/login`,
-        data: formData,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (response.status === 200) {
-        toast.success("User Login successfully");
-        const token=response?.data?.data?.Token;
-        localStorage.setItem("token",token)
-        navigate("/")
-      } else {
-        toast.error("Login failed. Please check your credentials.");
+      const response = await api.post('/api/v1/users/login', formData);
+      if (response.data.success) {
+        login(response.data.data.user);
+        toast.success("Welcome back to the archives.");
+        navigate("/");
       }
     } catch (error) {
-      toast.error("An error occurred. Please try again.");
+      toast.error(error.response?.data?.message || "Authentication failed.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-500 to-indigo-600">
-      <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-        <h2 className="text-3xl font-semibold text-center text-gray-800 mb-6">Login</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-600">Email</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="example@email.com"
-              required
-            />
+    <div className="min-h-screen bg-[#F4F4F0] flex items-center justify-center p-4 font-sans selection:bg-accent selection:text-white">
+      <div className="w-full max-w-xl bg-white border border-stone-300 shadow-[20px_20px_0px_#1c191710]">
+        
+        {/* Header Section */}
+        <div className="p-8 sm:p-12 border-b border-stone-300 text-center">
+          <h1 className="text-5xl sm:text-6xl font-serif text-stone-900 tracking-tighter mb-4">
+            Sign <i className="text-stone-400 font-light">In.</i>
+          </h1>
+          <p className="text-stone-500 uppercase tracking-widest text-xs font-bold">
+            Access your contributor dashboard
+          </p>
+        </div>
+
+        {/* Form Section */}
+        <form onSubmit={handleSubmit} className="p-8 sm:p-12 space-y-8">
+          <div className="space-y-6">
+            <div className="relative group">
+              <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-stone-400 mb-2 group-focus-within:text-accent transition-colors">
+                Email Address
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="editor@blogspace.com"
+                className="w-full bg-stone-50 border border-stone-200 p-4 outline-none focus:border-stone-900 focus:bg-white transition-all font-medium text-stone-800"
+                required
+              />
+            </div>
+
+            <div className="relative group">
+              <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-stone-400 mb-2 group-focus-within:text-accent transition-colors">
+                Secret Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  className="w-full bg-stone-50 border border-stone-200 p-4 outline-none focus:border-stone-900 focus:bg-white transition-all font-medium text-stone-800"
+                  required
+                />
+                <button 
+                  type="button" 
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-900"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-600">Password</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="********"
-              required
-            />
-          </div>
+
           <button
             type="submit"
-            className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            disabled={loading}
+            className="w-full cursor-pointer bg-stone-900 text-[#F4F4F0] py-5 font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-3 hover:bg-accent transition-all duration-300 disabled:bg-stone-300"
           >
-            Login
+            {loading ? "Verifying..." : "Enter the Archive"}
+            {!loading && <ArrowRight size={16} />}
           </button>
         </form>
-        <p className="mt-6 text-center text-gray-600">
-          Not have an account?{' '}
-          <Link to="/register" className="text-indigo-600 hover:underline">
-            Register
-          </Link>
-        </p>
+
+        {/* Footer Section */}
+        <div className="p-6 bg-stone-50 border-t border-stone-300 text-center">
+          <p className="text-stone-500 text-sm">
+            New to the platform?{' '}
+            <Link to="/register" className="text-stone-900 font-bold hover:text-accent underline underline-offset-4">
+              Create an account
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

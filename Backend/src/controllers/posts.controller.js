@@ -1,188 +1,171 @@
 import { Posts } from "../models/post.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import mongoose from "mongoose";
+import { ApiError } from "../utils/ApiError.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import { Comment } from "../models/comment.model.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
-// Controller function to get all posts
-const getAllPosts = async (req, res) => {
-  try {
-    const posts = await Posts.find().populate("author", "username");
-    return res
-      .status(200)
-      .json(new ApiResponse(200, posts, "Posts fetched Successfully"));
-  } catch (err) {
-    res.status(err.code || 500).json({
-      success: false,
-      message: err.message,
-    });
+const getAllPosts = asyncHandler(async (req, res) => {
+  const posts = await Posts.find().populate("author", "username");
+  return res
+    .status(200)
+    .json(new ApiResponse(200, posts, "Posts fetched Successfully"));
+});
+
+const createPost = asyncHandler(async (req, res) => {
+  const { title, content, description } = req.body;
+
+  if (!title || !content) {
+    throw new ApiError(400, "Title and content are required");
   }
-};
 
-const createPost = async (req, res) => {
-  try {
-    const { title, content, description } = req.body;
+  const localImagePath = req.file?.path;
 
-    let imageUrl = null;
-    if (req.file) {
-      imageUrl = `/uploads/${req.file.filename}`;
-    }
-
-    const newPost = new Posts({
-      title,
-      content,
-      author: req.user._id,
-      description,
-      image: imageUrl,
-    });
-
-    await newPost.save();
-
-    return res
-      .status(201)
-      .json(new ApiResponse(201, newPost, "Post Created Successfully"));
-  } catch (err) {
-    res.status(err.code || 500).json({
-      success: false,
-      message: err.message,
-    });
+  if (!localImagePath) {
+    throw new ApiError(400, "Image file is required");
   }
-};
 
-const getPostById = async (req, res) => {
-  try {
-    const postId = req.params.id.trim();
-    const post = await Posts.findById(postId)
-      .populate("author", "name")
-      .populate({
-        path: "comments",
-        populate: {
-          path: "author",
-          select: "name",
-        },
-      });
+  const cloudinaryResponse = await uploadOnCloudinary(localImagePath);
 
-    if (!post) {
-      return res.status(404).json(new ApiResponse(404, null, "Post not found"));
-    }
-
-    return res
-      .status(200)
-      .json(new ApiResponse(200, post, "Post fetched successfully"));
-  } catch (err) {
-    res.status(err.code || 500).json({
-      success: false,
-      message: err.message,
-    });
+  if (!cloudinaryResponse) {
+    throw new ApiError(400, "Error while uploading image to Cloudinary");
   }
-};
 
-// Controller function to edit a post
-const editPost = async (req, res) => {
-  try {
-    const postId = req.params.id.trim();
-    const { title, content, author, description } = req.body;
+  const newPost = await Posts.create({
+    title,
+    content,
+    author: req.user._id,
+    description,
+    image: cloudinaryResponse.url,
+  });
 
-    let imageUrl = null;
-    if (req.file) {
-      imageUrl = `/uploads/${req.file.filename}`;
-    }
+  return res
+    .status(201)
+    .json(new ApiResponse(201, newPost, "Post Created Successfully"));
+});
 
-    const updatedPostData = {
-      title,
-      content,
-      author,
-      description,
-    };
+const getPostById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
 
-    if (imageUrl) {
-      updatedPostData.image = imageUrl;
-    }
+  const post = await Posts.findById(id).populate({
+    path: "comments",
+    populate: {
+      path: "author",
+      select: "username", // Only get the username for security
+    },
+  }).populate("author", "username"); // Also populate the post's author
 
-    const updatedPost = await Posts.findByIdAndUpdate(postId, updatedPostData, {
-      new: true,
-      runValidators: true,
-    });
-
-    if (!updatedPost) {
-      return res.status(404).json(new ApiResponse(404, null, "Post not found"));
-    }
-
-    return res
-      .status(200)
-      .json(new ApiResponse(200, updatedPost, "Post updated successfully"));
-  } catch (err) {
-    res.status(err.code || 500).json({
-      success: false,
-      message: err.message,
-    });
+  if (!post) {
+    throw new ApiError(404, "Post not found");
   }
-};
 
-const addCommentToPost = async (req, res) => {
-  try {
-    const id = req.params.id.trim();
-    const { content } = req.body;
-    const newComment = new Comment({
-      content,
-      author: req.user,
-      post: id,
-    });
+  return res
+    .status(200)
+    .json(new ApiResponse(200, post, "Post fetched successfully"));
+});
 
-    const savedComment = await newComment.save();
 
-    const post = await Posts.findById(id);
-    if (!post) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Post not found" });
-    }
+const editPost = asyncHandler(async (req, res) => {
+  const postId = req.params.id?.trim();
+  const { title, content, description } = req.body;
 
-    post.comments.push(savedComment._id);
-    await post.save();
-    res
-      .status(201)
-      .json(new ApiResponse(201, savedComment, "Comment Added Succesfully"));
-  } catch (err) {
-    res.status(err.code || 500).json({
-      success: false,
-      message: err.message,
-    });
+  const post = await Posts.findById(postId);
+
+  if (!post) {
+    throw new ApiError(404, "Post not found");
   }
-};
 
-export const deletePostById = async (req, res) => {
-  try {
-    const postId = req.params.id.trim();
-
-    const post = await Posts.findById(postId);
-
-    if (!post) {
-      return res.status(404).json(new ApiResponse(404, null, "Post not found"));
-    }
-
-    if (!post.author.equals(req.user._id)) {
-      return res
-        .status(403)
-        .json(
-          new ApiResponse(
-            403,
-            null,
-            "You are not authorized to delete this post"
-          )
-        );
-    }
-
-    await post.deleteOne();
-
-    return res
-      .status(200)
-      .json(new ApiResponse(200, null, "Post deleted successfully"));
-  } catch (err) {
-    res.status(err.code || 500).json({
-      success: false,
-      message: err.message,
-    });
+  if (post.author.toString() !== req.user._id.toString()) {
+    throw new ApiError(403, "You are not authorized to edit this post");
   }
-};
 
-export { getAllPosts, createPost, editPost, getPostById, addCommentToPost };
+  let imageUrl = post.image;
+  const localImagePath = req.file?.path;
+
+  if (localImagePath) {
+    const cloudinaryResponse = await uploadOnCloudinary(localImagePath);
+    if (cloudinaryResponse) {
+      imageUrl = cloudinaryResponse.url;
+    }
+  }
+
+  const updatedPost = await Posts.findByIdAndUpdate(
+    postId,
+    {
+      $set: {
+        title,
+        content,
+        description,
+        image: imageUrl,
+      },
+    },
+    { new: true, runValidators: true }
+  );
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedPost, "Post updated successfully"));
+});
+
+// controllers/comment.controller.js
+const addCommentToPost = asyncHandler(async (req, res) => {
+  const id = req.params.id?.trim(); // Post ID
+  const { content, parentCommentId } = req.body;
+
+  if (!content) {
+    throw new ApiError(400, "Comment content is required");
+  }
+
+  const post = await Posts.findById(id);
+  if (!post) {
+    throw new ApiError(404, "Post not found");
+  }
+
+  // 1. Create the comment
+  const newComment = await Comment.create({
+    content,
+    author: req.user._id,
+    post: id,
+    parentComment: parentCommentId || null,
+  });
+
+  // 2. CRITICAL: Add the comment ID to the Post document so it's storable
+  post.comments.push(newComment._id);
+  await post.save();
+
+  // 3. Populate the author so the frontend can show the username immediately
+  const populatedComment = await Comment.findById(newComment._id).populate("author", "username");
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, populatedComment, "Comment Added Successfully"));
+});
+
+const deletePostById = asyncHandler(async (req, res) => {
+  const postId = req.params.id?.trim();
+
+  const post = await Posts.findById(postId);
+
+  if (!post) {
+    throw new ApiError(404, "Post not found");
+  }
+
+  if (post.author.toString() !== req.user._id.toString()) {
+    throw new ApiError(403, "You are not authorized to delete this post");
+  }
+
+  await post.deleteOne();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, null, "Post deleted successfully"));
+});
+
+export {
+  getAllPosts,
+  createPost,
+  editPost,
+  getPostById,
+  addCommentToPost,
+  deletePostById,
+};

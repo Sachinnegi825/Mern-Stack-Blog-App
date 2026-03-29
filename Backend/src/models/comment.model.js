@@ -1,17 +1,28 @@
+// models/Comment.js
 import mongoose, { Schema } from "mongoose";
 
 const commentSchema = new Schema(
   {
-    content: { type: String, required: true },
+    content: {
+      type: String,
+      required: true,
+    },
     author: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      required: true,
     },
     post: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Post",
+      ref: "Posts",
       required: true,
-    }, // Connects the comment to the post
+    },
+    // Add this for 1-level nesting
+    parentComment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Comment",
+      default: null,
+    },
   },
   {
     timestamps: true,

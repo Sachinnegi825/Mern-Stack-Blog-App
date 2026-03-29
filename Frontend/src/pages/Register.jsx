@@ -1,7 +1,8 @@
-import axios from 'axios';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {toast } from 'react-toastify';
+import { toast } from 'react-toastify';
+import api from '../services/api';
+import { ArrowRight, UserPlus, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -10,138 +11,147 @@ const Register = () => {
     password: '',
     confirmPassword: '',
   });
+  
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const navigate=useNavigate();
-  const baseUrl = import.meta.env.VITE_API_URL;
-
-  // Regex patterns
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const validateForm = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      toast.error("Please enter a valid email address.");
+      toast.error("Please provide a valid email.");
       return false;
     }
-
-    if (!passwordRegex.test(formData.password)) {
-      toast.error("Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character.");
+    if (formData.password.length < 8) {
+      toast.error("Password must be at least 8 characters.");
       return false;
     }
-
     if (formData.password !== formData.confirmPassword) {
       toast.error("Passwords do not match.");
       return false;
     }
-
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
 
-    if (!validateForm()) {
-      return;
-    }
-
+    setLoading(true);
     const { confirmPassword, ...dataToSend } = formData;
 
     try {
-      const response = await axios({
-        method: "post",
-        url:`${baseUrl}/api/v1/users/register`,
-        data: dataToSend,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (response.status === 201) {
-        toast.success("Registration successful!Now Redirecting to login Page");
-        navigate("/login")
-
-      } else {
-        toast.error("Registration failed. Please try again.");
+      const response = await api.post('/api/v1/users/register', dataToSend);
+      if (response.data.success) {
+        toast.success("Account registered. You may now sign in.");
+        navigate("/login");
       }
     } catch (error) {
-      toast.error("An error occurred. Please try again.");
+      toast.error(error.response?.data?.message || "Registration failed.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-500 to-indigo-600">
-     
-      <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-        <h2 className="text-3xl font-semibold text-center text-gray-800 mb-6">Create an Account</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="min-h-screen bg-[#F4F4F0] flex items-center justify-center p-4 font-sans selection:bg-accent selection:text-white">
+      <div className="w-full max-w-2xl bg-white border border-stone-300 shadow-[20px_20px_0px_#1c191710] grid md:grid-cols-5">
+        
+        {/* Side Info */}
+        <div className="hidden md:flex md:col-span-2 bg-stone-900 p-10 flex-col justify-between text-[#F4F4F0]">
           <div>
-            <label className="block text-sm font-medium text-gray-600">Full Name</label>
-            <input
-              type="text"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              className="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="John Doe"
-              required
-            />
+            <ShieldCheck className="w-10 h-10 text-accent mb-6" strokeWidth={1.5} />
+            <h2 className="text-3xl font-serif leading-tight">Join the <br/> Network.</h2>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-600">Email</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="example@email.com"
-              required
-            />
+          <p className="text-stone-400 text-sm leading-relaxed">
+            Create an account to publish your stories and engage with our modern community.
+          </p>
+        </div>
+
+        {/* Form Section */}
+        <div className="md:col-span-3">
+          <div className="p-8 sm:p-10 border-b border-stone-300">
+            <h1 className="text-4xl font-serif text-stone-900 tracking-tight text-center sm:text-left">Register.</h1>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-600">Password</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="********"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-600">Confirm Password</label>
-            <input
-              type="password"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              className="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="********"
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            Register
-          </button>
-        </form>
-        <p className="mt-6 text-center text-gray-600">
-          Already have an account?{' '}
-          <Link to="/login" className="text-indigo-600 hover:underline">
-            Login
-          </Link>
-        </p>
+
+          <form onSubmit={handleSubmit} className="p-8 sm:p-10 space-y-5">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1">Full Name</label>
+                <input
+                  type="text" name="username" value={formData.username} onChange={handleChange}
+                  placeholder="Sachin Negi"
+                  className="w-full bg-stone-50 border border-stone-200 p-3 outline-none focus:border-stone-900 transition-all text-stone-800"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1">Email</label>
+                <input
+                  type="email" name="email" value={formData.email} onChange={handleChange}
+                  placeholder="name@example.com"
+                  className="w-full bg-stone-50 border border-stone-200 p-3 outline-none focus:border-stone-900 transition-all text-stone-800"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="relative">
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1">Password</label>
+                  <input
+                    type={showPassword ? "text" : "password"} name="password" value={formData.password} onChange={handleChange}
+                    placeholder="••••••••"
+                    className="w-full bg-stone-50 border border-stone-200 p-3 pr-10 outline-none focus:border-stone-900 transition-all text-stone-800"
+                    required
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-8 text-stone-400 hover:text-stone-900"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                <div className="relative">
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1">Repeat</label>
+                  <input
+                    type={showConfirmPassword ? "text" : "password"} name="confirmPassword" value={formData.confirmPassword} onChange={handleChange}
+                    placeholder="••••••••"
+                    className="w-full bg-stone-50 border border-stone-200 p-3 pr-10 outline-none focus:border-stone-900 transition-all text-stone-800"
+                    required
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-8 text-stone-400 hover:text-stone-900"
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full mt-4 bg-stone-900 text-[#F4F4F0] py-4 font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-3 hover:bg-accent transition-all duration-300 disabled:bg-stone-300"
+            >
+              {loading ? "Creating..." : "Create Account"}
+              {!loading && <UserPlus size={16} />}
+            </button>
+
+            <p className="text-center text-stone-500 text-xs mt-6">
+              Already a contributor?{' '}
+              <Link to="/login" className="text-stone-900 font-bold hover:text-accent underline underline-offset-4">
+                Sign In
+              </Link>
+            </p>
+          </form>
+        </div>
       </div>
     </div>
   );
