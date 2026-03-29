@@ -13,7 +13,7 @@ import CreatePost from './pages/CreatePost';
 import AllPosts from './pages/AllPosts';
 import EditPost from './pages/EditPost';
 import MyPosts from './pages/MyPosts';
-import ScrollToTop from './components/ScrolltoTop';
+import ScrollToTop from './components/ScrollToTop';
 
 const App = () => {
   const location = useLocation();
