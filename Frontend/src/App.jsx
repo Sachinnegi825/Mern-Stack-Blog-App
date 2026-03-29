@@ -25,7 +25,7 @@ const App = () => {
       <ToastContainer />
       {!hideHeaderAndFooter && <Header />}
       
-      <div className="flex-grow">
+      <div className="grow">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
